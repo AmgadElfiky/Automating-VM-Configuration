@@ -1,0 +1,38 @@
+# Parse data and store values in variables
+$publicIp = "192.168.2.1"
+$privateIp = "172.127.1.1"
+# Define the password as a plain string
+$password = "Hello2024"
+
+# Convert the plain password to a secure string
+$securePassword = ConvertTo-SecureString $password -AsPlainText -Force
+
+# Set the new password for the local Administrator account
+Get-LocalUser -Name "Administrator" | Set-LocalUser -Password $securePassword
+
+##########################################################################################################################################################################
+Write-Output "Printing variables received from the first script:"
+Write-Output "Public IP Address: $publicIp"
+Write-Output "Private IP Address: $privateIp"
+
+# Set the IP address for the PRswitch network adapter
+New-NetIPAddress -InterfaceAlias "PRswitch" -IPAddress $privateIp -AddressFamily IPv4 -PrefixLength 24
+New-NetIPAddress -InterfaceAlias "EXswitch" -IPAddress $publicIp -AddressFamily IPv4 -PrefixLength 24
+
+# Disable the INswitch network adapter
+Disable-NetAdapter -Name "INswitch" -Confirm:$false
+
+# Delay to ensure the user sees the password change confirmation
+Start-Sleep -Seconds 3
+
+# Remove the script from the Startup folder
+Remove-Item -Path "C:\Users\Administrator\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\*" -Force
+
+# Remove registry entries related to automatic logon
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "DefaultPassword" -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "DefaultUserName" -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "AutoAdminLogon" -ErrorAction SilentlyContinue
+
+# Remove the script itself
+Remove-Item -Path $MyInvocation.MyCommand.Path -Force
+##########################################################################################################################################################################
